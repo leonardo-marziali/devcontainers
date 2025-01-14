@@ -1,0 +1,13 @@
+name: Features Checkout
+on:
+  workflow_call:
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Features Checkout"
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            features

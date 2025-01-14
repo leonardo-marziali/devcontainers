@@ -1,0 +1,17 @@
+{
+	"name": "pre-commit",
+	"id": "pre-commit",
+	"version": "0.0.0",
+	"description": "A framework for managing and maintaining multi-language pre-commit hooks",
+	"options": {
+		"version": {
+			"type": "string",
+			"default": "latest",
+			"description": "Select a version of pre-commit to install."
+		}
+	},
+	"installsAfter": [
+		"ghcr.io/devcontainers/features/common-utils",
+		"ghcr.io/devcontainers/features/python"
+	]
+}

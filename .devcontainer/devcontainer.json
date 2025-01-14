@@ -1,0 +1,40 @@
+{
+	"image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {}
+	},
+	"postCreateCommand": "npm install -g @devcontainers/cli",
+	"customizations": {
+		"jetbrains": {
+			"settings": {
+				"com.intellij:app:GeneralSettings.autoSaveIfInactive": true,
+				"com.intellij:app:GeneralSettings.inactiveTimeout": 1,
+				"com.intellij:app:BuiltInServerOptions.builtInServerPort": 51461
+			},
+			"backend": "IntelliJ",
+			"plugins": [
+				"org.intellij.plugins.hcl",
+				"google-java-format"
+			],
+		},
+		"vscode": {
+			"settings": {
+				"json.schemas": [
+					{
+						"fileMatch": [
+							"*/devcontainer-feature.json"
+						],
+						"url": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainerFeature.schema.json"
+					}
+				]
+			},
+			"extensions": [
+				"mads-hartmann.bash-ide-vscode",
+				"dbaeumer.vscode-eslint",
+				"EditorConfig.EditorConfig",
+				"GitHub.vscode-github-actions",
+				"redhat.vscode-yaml"
+			]
+		}
+	}
+}
