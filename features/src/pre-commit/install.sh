@@ -6,6 +6,7 @@ OPTIMIZE_PYTHON_BUILD_FROM_SOURCE="false"
 ENABLE_SHARED_FROM_SOURCE="false"
 PYTHON_INSTALL_PATH="/usr/local/python"
 OVERRIDE_DEFAULT_PYTHON_VERSION="false"
+PIPX_HOME="/usr/local/py-utils"
 
 USERNAME="${USERNAME:-"${_REMOTE_USER:-"automatic"}"}"
 UPDATE_RC="true"
@@ -735,43 +736,11 @@ sys.prefix == sys.base_prefix and print(sysconfig.get_path("stdlib", sysconfig.g
     fi
 }
 
-check_package_compatibility() {
-    local base_command_to_use="$1"
-    local package="$2"
-    local python_version="$3"
-    local package_version="$4"
-
-    local pip_output="$(${base_command_to_use} install "${package}"== --dry-run \
-        --python-version "${python_version}" \
-        --no-deps \
-        --target foo 2>&1)"
-    
-    # Check if the specific version is compatible
-    if ! echo "${pip_output}" | grep -oP '\((.*?)\)' | grep -q "\b${package_version}\b"; then
-
-        # Extract Python version requirements if present in the output
-        local version_requirements=$(echo "${pip_output}" | grep -o "${package_version} Requires-Python[^;]*" || true)
-        
-        echo "Error: ${package} version ${package_version} is not compatible with Python ${python_version}" >&2
-        
-        # Only show version requirements if they were found
-        if [[ -n "${version_requirements}" ]]; then
-            echo "Version requirements: ${version_requirements}" >&2
-        fi
-        
-        return 1
-    fi
-
-    return 0
-}
-
 install_pipx() {
 
-    PIPX_HOME="/usr/local/py-utils"
-
     echo 'Installing pix...'
-    export PIPX_BIN_DIR="${PIPX_HOME}/bin"
-    PATH="${PATH}:${PIPX_BIN_DIR}"
+    local pipxBinDir="${PIPX_HOME}/bin"
+    PATH="${PATH}:${pipxBinDir}"
 
     # Create pipx group, dir, and set sticky bit
     if ! cat /etc/group | grep -e "^pipx:" > /dev/null 2>&1; then
@@ -779,13 +748,16 @@ install_pipx() {
     fi
     usermod -a -G pipx ${USERNAME}
     umask 0002
-    mkdir -p ${PIPX_BIN_DIR}
+    mkdir -p ${pipxBinDir}
     chown -R "${USERNAME}:pipx" ${PIPX_HOME}
     chmod -R g+r+w "${PIPX_HOME}"
     find "${PIPX_HOME}" -type d -print0 | xargs -0 -n 1 chmod g+s
 
     if ! type pipx > /dev/null 2>&1; then
         check_packages pipx
+        updaterc "export PIPX_HOME=\"${PIPX_HOME}\""
+        updaterc "export PIPX_BIN_DIR=\"${pipxBinDir}\""
+        updaterc "if [[ \"\${PATH}\" != *\"\${PIPX_BIN_DIR}\"* ]]; then export PATH=\"\${PATH}:\${PIPX_BIN_DIR}\"; fi"
     fi
 
 }
@@ -797,10 +769,7 @@ install_with_pipx() {
 
     pipx install --system-site-packages --pip-args '--no-cache-dir --force-reinstall' "${package}"=="${version}"
 
-    updaterc "export PIPX_HOME=\"${PIPX_HOME}\""
-    updaterc "export PIPX_BIN_DIR=\"${PIPX_BIN_DIR}\""
-    updaterc "if [[ \"\${PATH}\" != *\"\${PIPX_BIN_DIR}\"* ]]; then export PATH=\"\${PATH}:\${PIPX_BIN_DIR}\"; fi"
-
+    chown -R "${USERNAME}:pipx" ${PIPX_HOME}
 }
 
 # Ensure that login shells get the correct path if the user updated the PATH using ENV.
@@ -857,11 +826,6 @@ if PYTHON_FINDER_RESULT=$(version_finder python); then
         fi
 
         find_version_from_git_tags PRE_COMMIT_VERSION "https://github.com/pre-commit/pre-commit"
-
-        if check_package_compatibility "${PIP_CMD}" "pre-commit" "${PYTHON_VERSION}" "${PRE_COMMIT_VERSION}"; then
-            install_pipx
-            install_with_pipx "pre-commit" "${PRE_COMMIT_VERSION}" 
-        fi
 
     else
 

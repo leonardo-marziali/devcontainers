@@ -822,7 +822,6 @@ if [[ "${INSTALL_PYTHON_TOOLS}" = "true" ]] && [[ -n "${PYTHON_SRC}" ]]; then
     usermod -a -G pipx ${USERNAME}
     umask 0002
     mkdir -p ${PIPX_BIN_DIR}
-    chown -R "${USERNAME}:pipx" ${PIPX_HOME}
     chmod -R g+r+w "${PIPX_HOME}"
     find "${PIPX_HOME}" -type d -print0 | xargs -0 -n 1 chmod g+s
 
@@ -848,6 +847,7 @@ if [[ "${INSTALL_PYTHON_TOOLS}" = "true" ]] && [[ -n "${PYTHON_SRC}" ]]; then
     for util in "${DEFAULT_UTILS[@]}"; do
         if ! type ${util} > /dev/null 2>&1; then
             "${PIPX_DIR}pipx" install --system-site-packages --pip-args '--no-cache-dir --force-reinstall' ${util}
+            chown -R "${USERNAME}:pipx" ${PIPX_HOME}
         else
             echo "${util} already installed. Skipping."
         fi
