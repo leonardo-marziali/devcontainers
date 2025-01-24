@@ -812,18 +812,18 @@ fi
 # Install Python tools if needed
 if [[ "${INSTALL_PYTHON_TOOLS}" = "true" ]] && [[ -n "${PYTHON_SRC}" ]]; then
     echo 'Installing Python tools...'
-    export PIPX_BIN_DIR="${PIPX_HOME}/bin"
-    PATH="${PATH}:${PIPX_BIN_DIR}"
+    # export PIPX_BIN_DIR="${PIPX_HOME}/bin"
+    # PATH="${PATH}:${PIPX_BIN_DIR}"
 
     # Create pipx group, dir, and set sticky bit
-    if ! cat /etc/group | grep -e "^pipx:" > /dev/null 2>&1; then
-        groupadd -r pipx
-    fi
-    usermod -a -G pipx ${USERNAME}
-    umask 0002
-    mkdir -p ${PIPX_BIN_DIR}
-    chmod -R g+r+w "${PIPX_HOME}"
-    find "${PIPX_HOME}" -type d -print0 | xargs -0 -n 1 chmod g+s
+    # if ! cat /etc/group | grep -e "^pipx:" > /dev/null 2>&1; then
+    #     groupadd -r pipx
+    # fi
+    # usermod -a -G pipx ${USERNAME}
+    # umask 0002
+    # mkdir -p ${PIPX_BIN_DIR}
+    # chmod -R g+r+w "${PIPX_HOME}"
+    # find "${PIPX_HOME}" -type d -print0 | xargs -0 -n 1 chmod g+s
 
     # Update pip if not using os provided python
     if [[ -n "${PYTHON_SRC}" ]] && [[ ${PYTHON_VERSION} != "os-provided" ]] && [[ ${PYTHON_VERSION} != "system" ]] && [[ ${PYTHON_VERSION} != "none" ]]; then
@@ -838,6 +838,8 @@ if [[ "${INSTALL_PYTHON_TOOLS}" = "true" ]] && [[ -n "${PYTHON_SRC}" ]]; then
     if ! type pipx > /dev/null 2>&1; then
         if python_is_externally_managed ${PYTHON_SRC}; then
             check_packages pipx
+            sudo -u ${USERNAME} pipx ensurepath
+            pipx ensurepath
         else
             pip3 install --disable-pip-version-check --no-cache-dir --user pipx 2>&1
             /tmp/pip-tmp/bin/pipx install --pip-args=--no-cache-dir pipx
@@ -846,8 +848,8 @@ if [[ "${INSTALL_PYTHON_TOOLS}" = "true" ]] && [[ -n "${PYTHON_SRC}" ]]; then
     fi
     for util in "${DEFAULT_UTILS[@]}"; do
         if ! type ${util} > /dev/null 2>&1; then
-            "${PIPX_DIR}pipx" install --system-site-packages --pip-args '--no-cache-dir --force-reinstall' ${util}
-            chown -R "${USERNAME}:pipx" ${PIPX_HOME}
+            sudo -u ${USERNAME} "${PIPX_DIR}pipx" install --system-site-packages --pip-args '--no-cache-dir --force-reinstall' ${util}
+            # chown -R "${USERNAME}:pipx" ${PIPX_HOME}
         else
             echo "${util} already installed. Skipping."
         fi
@@ -892,9 +894,9 @@ if [[ "${INSTALL_PYTHON_TOOLS}" = "true" ]] && [[ -n "${PYTHON_SRC}" ]]; then
 
     rm -rf /tmp/pip-tmp
 
-    updaterc "export PIPX_HOME=\"${PIPX_HOME}\""
-    updaterc "export PIPX_BIN_DIR=\"${PIPX_BIN_DIR}\""
-    updaterc "if [[ \"\${PATH}\" != *\"\${PIPX_BIN_DIR}\"* ]]; then export PATH=\"\${PATH}:\${PIPX_BIN_DIR}\"; fi"
+    # updaterc "export PIPX_HOME=\"${PIPX_HOME}\""
+    # updaterc "export PIPX_BIN_DIR=\"${PIPX_BIN_DIR}\""
+    # updaterc "if [[ \"\${PATH}\" != *\"\${PIPX_BIN_DIR}\"* ]]; then export PATH=\"\${PATH}:\${PIPX_BIN_DIR}\"; fi"
 fi
 
 # Install JupyterLab if needed

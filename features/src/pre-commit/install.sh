@@ -6,7 +6,6 @@ OPTIMIZE_PYTHON_BUILD_FROM_SOURCE="false"
 ENABLE_SHARED_FROM_SOURCE="false"
 PYTHON_INSTALL_PATH="/usr/local/python"
 OVERRIDE_DEFAULT_PYTHON_VERSION="false"
-PIPX_HOME="/usr/local/py-utils"
 
 USERNAME="${USERNAME:-"${_REMOTE_USER:-"automatic"}"}"
 UPDATE_RC="true"
@@ -736,40 +735,21 @@ sys.prefix == sys.base_prefix and print(sysconfig.get_path("stdlib", sysconfig.g
     fi
 }
 
-install_pipx() {
-
-    echo 'Installing pix...'
-    local pipxBinDir="${PIPX_HOME}/bin"
-    PATH="${PATH}:${pipxBinDir}"
-
-    # Create pipx group, dir, and set sticky bit
-    if ! cat /etc/group | grep -e "^pipx:" > /dev/null 2>&1; then
-        groupadd -r pipx
-    fi
-    usermod -a -G pipx ${USERNAME}
-    umask 0002
-    mkdir -p ${pipxBinDir}
-    chown -R "${USERNAME}:pipx" ${PIPX_HOME}
-    chmod -R g+r+w "${PIPX_HOME}"
-    find "${PIPX_HOME}" -type d -print0 | xargs -0 -n 1 chmod g+s
-
-    if ! type pipx > /dev/null 2>&1; then
-        check_packages pipx
-        updaterc "export PIPX_HOME=\"${PIPX_HOME}\""
-        updaterc "export PIPX_BIN_DIR=\"${pipxBinDir}\""
-        updaterc "if [[ \"\${PATH}\" != *\"\${PIPX_BIN_DIR}\"* ]]; then export PATH=\"\${PATH}:\${PIPX_BIN_DIR}\"; fi"
-    fi
-
-}
-
-install_with_pipx() {
+install_pipx_package() {
 
     local package="$1"
-    local version="$2"
+    local package_version="$2"
 
-    pipx install --system-site-packages --pip-args '--no-cache-dir --force-reinstall' "${package}"=="${version}"
+    echo 'Check if pipx is installed'
 
-    chown -R "${USERNAME}:pipx" ${PIPX_HOME}
+    if ! type pipx > /dev/null 2>&1; then
+        echo 'Installing pix...'
+        check_packages pipx
+    else
+        echo 'pipx already installed'
+    fi
+
+    sudo -i -u ${USERNAME} bash -c "pipx install ${package}==${package_version:-==latest}"
 }
 
 # Ensure that login shells get the correct path if the user updated the PATH using ENV.
@@ -811,21 +791,9 @@ if PYTHON_FINDER_RESULT=$(version_finder python); then
 
         echo "Python is externally managed"
 
-        if PIP_FINDER_RESULT=$(version_finder pip); then
-            read PIP_CMD PIP_VERSION <<< "${PIP_FINDER_RESULT//$'\t'/ }"
-            echo "Found $PIP_CMD version $PIP_VERSION"
-        else
-            check_packages pip
-            IFS=' ' read PIP_CMD PIP_VERSION < <(version_finder pip)
-        fi
-
-        if awk -v ver="$PIP_VERSION" 'BEGIN {exit (ver >= 22.2)}'; then
-            echo "Pip version is less than 22.2"
-        else
-            echo "Pip version is greater than or equal to 22.2"
-        fi
-
         find_version_from_git_tags PRE_COMMIT_VERSION "https://github.com/pre-commit/pre-commit"
+
+        install_with_pipx pre-commit ${PRE_COMMIT_VERSION}
 
     else
 
